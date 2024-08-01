@@ -10,6 +10,7 @@ const App = () => {
   const [contractAddress, setContractAddress] = useState('');
   const [balance, setBalance] = useState(0);
   const [amount, setAmount] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
 
   useEffect(() => {
     loadBlockchainData();
@@ -56,6 +57,10 @@ const App = () => {
     setAmount(event.target.value);
   };
 
+  const handleTransferChange = (event) => {
+    setTransferAmount(event.target.value);
+  };
+
   const generateRandomNumbers = async () => {
     if (contract) {
       try {
@@ -73,15 +78,34 @@ const App = () => {
   const handleTransferSubmit = async (event) => {
     event.preventDefault();
     if (contract) {
+      const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
       try {
-        await contract.methods.transferTo(account, Web3.utils.toWei(amount, 'ether')).send({ from: account });
+        await web3.eth.sendTransaction({
+          from: account,
+          to: contractAddress,
+          value: web3.utils.toWei(transferAmount, 'ether'),
+          gas: 3000000 // 默认Gas限制为3000000，可以根据需要调整
+        });
         const contractBalance = await contract.methods.getBalance().call();
         setBalance(Web3.utils.fromWei(contractBalance, 'ether'));
       } catch (error) {
-        console.error("Error transferring funds:", error);
+        console.error("Error sending transaction:", error);
       }
     }
   };
+
+  // const handleTransferSubmit = async (event) => {
+  //   event.preventDefault();
+  //   if (contract) {
+  //     try {
+  //       await contract.methods.transferTo(account, Web3.utils.toWei(amount, 'ether')).send({ from: account });
+  //       const contractBalance = await contract.methods.getBalance().call();
+  //       setBalance(Web3.utils.fromWei(contractBalance, 'ether'));
+  //     } catch (error) {
+  //       console.error("Error transferring funds:", error);
+  //     }
+  //   }
+  // };
 
   return (
     <div>
@@ -100,6 +124,15 @@ const App = () => {
           placeholder="Enter amount to withdraw" 
         />
         <button type="submit">Withdraw</button>
+      </form>
+      <form onSubmit={handleTransferSubmit}>
+        <input 
+          type="text" 
+          value={transferAmount} 
+          onChange={handleTransferChange} 
+          placeholder="Enter amount to send to contract" 
+        />
+        <button type="submit">Send to Contract</button>
       </form>
     </div>
   );
